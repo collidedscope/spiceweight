@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+
+unless File.exists? 'spwt'
+  abort "no spwt binary found; did you run `make`?"
+end
+
+require 'fileutils'
+
+path_dirs = ENV['PATH'].split ?:
+path_dirs.select! { |dir|
+  File.writable?(dir) && (path_dirs - [dir]).none? { |sub| dir[sub] }
+}
+
+if path_dirs.empty?
+  abort "Can't install!\nCouldn't find any writable directories in your $PATH"
+end
+
+path_dirs.each.with_index(1) do |dir, i|
+  puts "#{i}.	#{dir}"
+end
+
+print "\nTo which of these directories would you like to install spwt? "
+
+n = gets.to_i
+if (1..path_dirs.size) === n
+  FileUtils.cp 'spwt', path_dirs[n - 1]
+  puts "spwt installed!"
+else
+  abort "invalid selection, aborting"
+end
