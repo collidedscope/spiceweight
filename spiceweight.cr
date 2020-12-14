@@ -104,7 +104,9 @@ class Spiceweight
       when :sub; check 2, sub; binop :-
       when :mul; check 2, mul; binop :*
       when :div; check 2, div
-        tmp = @stack.pop; @stack[-1] //= tmp
+        tmp = @stack.pop
+        abort "tried to divide by 0" if tmp.zero?
+        @stack[-1] //= tmp
       when :mod; check 2, mod
         a, b = @stack.pop 2
         @stack << case {a, b}
@@ -127,6 +129,7 @@ class Spiceweight
           call_times[arg] = now.not_nil!
         end
       when :ret
+        abort "nowhere to return to" if calls.empty?
         arg, ip = calls.pop
         if bench && bench_labels.includes? arg
           (@benchmarks[arg] ||= [] of Time::Span) <<
