@@ -66,6 +66,10 @@ class Spiceweight
   @benchmarks = {} of Int64 => Array(Time::Span)
   getter :stack, :heap, :count, :benchmarks
 
+  macro check(n, op)
+    abort "not enough elements for {{op}}" if @stack.size < {{n}}
+  end
+
   def interpret(bench, bench_labels, io = STDOUT)
     jumps = {} of Int64 => Int32
     @insns.each_with_index do |(op, arg), i|
@@ -84,27 +88,38 @@ class Spiceweight
       case op
       # stack
       when :push ; @stack << arg
-      when :pop  ; @stack.pop
-      when :dup  ; @stack << @stack[-1]
-      when :swap ; @stack[-1], @stack[-2] = @stack[-2], @stack[-1]
-      when :copy ; @stack << @stack[-1 - arg]
-      when :slide; @stack[-arg - 1, arg] = [] of Int64
-        # math
-      when :add; binop :+
-      when :sub; binop :-
-      when :mul; binop :*
-      when :div; tmp = @stack.pop; @stack[-1] //= tmp
-      when :mod; a, b = @stack.pop 2
-      @stack << case {a, b}
-      when {Int64, Int64}
-        a % b
-      else
-        BigInt.new(a) % b
-      end
+      when :pop  ; check 1, pop
+        @stack.pop
+      when :dup  ; check 1, dup
+        @stack << @stack[-1]
+      when :swap ; check 2, swap
+        @stack[-1], @stack[-2] = @stack[-2], @stack[-1]
+      when :copy ; check arg + 1, copy
+        @stack << @stack[-1 - arg]
+      when :slide; check arg + 1, slide
+        @stack[-arg - 1, arg] = [] of Int64
+
+      # math
+      when :add; check 2, add; binop :+
+      when :sub; check 2, sub; binop :-
+      when :mul; check 2, mul; binop :*
+      when :div; check 2, div
+        tmp = @stack.pop; @stack[-1] //= tmp
+      when :mod; check 2, mod
+        a, b = @stack.pop 2
+        @stack << case {a, b}
+        when {Int64, Int64}
+          a % b
+        else
+          BigInt.new(a) % b
+        end
+
       # flow
       when :jump; ip = jumps[arg]
-      when :jz  ; ip = jumps[arg] if @stack.pop == 0
-      when :jn  ; ip = jumps[arg] if @stack.pop < 0
+      when :jz  ; check 1, jz
+        ip = jumps[arg] if @stack.pop == 0
+      when :jn  ; check 1, jn
+        ip = jumps[arg] if @stack.pop < 0
       when :call
         calls << {arg, ip}
         ip = jumps[arg]
@@ -118,10 +133,13 @@ class Spiceweight
             now.not_nil! - call_times[arg]
         end
       when :exit; break
-        # heap
-      when :store; k, v = @stack.pop 2; @heap[k] = v
-      when :load ; @stack << @heap.fetch @stack.pop.to_i, 0i64
-        # IO
+
+      # heap
+      when :store; check 2, store
+        k, v = @stack.pop 2; @heap[k] = v
+      when :load ; check 1, load
+        @stack << @heap.fetch @stack.pop.to_i, 0i64
+      # IO
       when :ichr; @heap[@stack.pop] = Int64.new (b = STDIN.read_byte) ? b : -1
       when :inum; @heap[@stack.pop] = Int64.new STDIN.peek.empty? ? 0 : gets.not_nil!
       when :ochr; io << @stack.pop.to_i.chr
