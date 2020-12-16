@@ -56,7 +56,7 @@ class Spiceweight
       begin
         @stack[-1] {{op.id}} tmp
       rescue OverflowError
-        BigInt.new(@stack[-1]) {{op.id}} tmp
+        @stack[-1].to_big_i {{op.id}} tmp
       end
   end
 
@@ -113,7 +113,7 @@ class Spiceweight
         when {Int64, Int64}
           a % b
         else
-          BigInt.new(a) % b
+          a.to_big_i % b
         end
 
       # flow
