@@ -16,6 +16,12 @@ class Spiceweight
   alias Insn = {Symbol, Int64}
 
   @tokens : Array(Char)
+  @stack = [] of Num
+  @heap = {} of Num => Num
+  @count = 0
+  @benchmarks = {} of Int64 => Array(Time::Span)
+
+  getter :stack, :heap, :count, :benchmarks
 
   def initialize(src)
     @tokens = src.delete("^ \t\n").chars
@@ -59,12 +65,6 @@ class Spiceweight
         @stack[-1].to_big_i {{op.id}} tmp
       end
   end
-
-  @stack = [] of Num
-  @heap = {} of Num => Num
-  @count = 0
-  @benchmarks = {} of Int64 => Array(Time::Span)
-  getter :stack, :heap, :count, :benchmarks
 
   macro check(n, op)
     abort "not enough elements for {{op}}" if @stack.size < {{n}}
