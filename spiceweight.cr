@@ -13,7 +13,7 @@ class Spiceweight
   }
 
   alias Num = Int64 | BigInt
-  alias Insn = {Symbol, Int64}
+  alias Insn = {Symbol, Num}
 
   @tokens : Array(Char)
   @stack = [] of Num
@@ -56,6 +56,15 @@ class Spiceweight
     end
   end
 
+  def parse_number
+    if i = @tokens.index '\n'
+      num = @tokens.shift i + 1
+      num[0] = '-' if num[0] == '\t'
+      num = num.join.tr " \t", "01"
+      i > 64 ? num.to_big_i 2 : num.to_i64 2
+    end
+  end
+
   macro binop(op)
     tmp = stack.pop
     @stack[-1] =
@@ -73,7 +82,7 @@ class Spiceweight
   def interpret(bench, bench_labels, io = STDOUT)
     jumps = {} of Int64 => Int32
     @insns.each_with_index do |(op, arg), i|
-      jumps[arg] = i if op == :label
+      jumps[arg.to_i64] = i if op == :label
     end
 
     ip = -1i32
@@ -83,6 +92,7 @@ class Spiceweight
     while insn = @insns[ip += 1]?
       now = Time.local if bench # ASAP for greatest accuracy
       op, arg = insn
+      iarg = arg.to_i64
       @count += 1 unless op == :label
 
       case op
@@ -97,7 +107,7 @@ class Spiceweight
       when :copy ; check arg + 1, copy
         @stack << @stack[-1 - arg]
       when :slide; check arg + 1, slide
-        @stack[-arg - 1, arg] = [] of Int64
+        @stack[-1 - iarg, iarg] = [] of Int64
 
       # math
       when :add; check 2, add; binop :+
@@ -123,10 +133,10 @@ class Spiceweight
       when :jn  ; check 1, jn
         ip = jumps[arg] if @stack.pop < 0
       when :call
-        calls << {arg, ip}
+        calls << {iarg, ip}
         ip = jumps[arg]
         if bench && bench_labels.includes? arg
-          call_times[arg] = now.not_nil!
+          call_times[iarg] = now.not_nil!
         end
       when :ret
         abort "nowhere to return to" if calls.empty?
@@ -148,14 +158,6 @@ class Spiceweight
       when :ochr; io << @stack.pop.to_i.chr
       when :onum; io << @stack.pop
       end
-    end
-  end
-
-  def parse_number
-    if i = @tokens.index '\n'
-      num = @tokens.shift i + 1
-      num[0] = '-' if num[0] == '\t'
-      num.join.tr(" \t", "01").to_i64 2
     end
   end
 end
