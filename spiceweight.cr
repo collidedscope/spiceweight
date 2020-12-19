@@ -2,6 +2,10 @@ require "big"
 require "json"
 require "option_parser"
 
+struct BigInt
+  def_hash to_i64
+end
+
 class Spiceweight
   Ops = {
     "  " => :push, " \t " => :copy, " \t\n" => :slide, "\n  " => :label,
