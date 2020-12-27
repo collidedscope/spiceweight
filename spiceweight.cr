@@ -40,7 +40,7 @@ class Spiceweight
       buffer += t
       if Ops.none? { |k, v| k.starts_with? buffer }
         abort "illegal token sequence #{buffer.inspect} " +
-          "(line #{line}, char #{char})"
+              "(line #{line}, char #{char})"
       end
 
       if op = Ops[buffer]?
@@ -101,41 +101,41 @@ class Spiceweight
 
       case op
       # stack
-      when :push ; @stack << arg
-      when :pop  ; check 1, pop
-        @stack.pop
-      when :dup  ; check 1, dup
-        @stack << @stack[-1]
-      when :swap ; check 2, swap
-        @stack[-1], @stack[-2] = @stack[-2], @stack[-1]
-      when :copy ; check arg + 1, copy
-        @stack << @stack[-1 - arg]
+      when :push; @stack << arg
+      when :pop; check 1, pop
+      @stack.pop
+      when :dup; check 1, dup
+      @stack << @stack[-1]
+      when :swap; check 2, swap
+      @stack[-1], @stack[-2] = @stack[-2], @stack[-1]
+      when :copy; check arg + 1, copy
+      @stack << @stack[-1 - arg]
       when :slide; check arg + 1, slide
-        @stack[-1 - iarg, iarg] = [] of Int64
+      @stack[-1 - iarg, iarg] = [] of Int64
 
       # math
       when :add; check 2, add; binop :+
       when :sub; check 2, sub; binop :-
       when :mul; check 2, mul; binop :*
       when :div; check 2, div
-        tmp = @stack.pop
-        abort "tried to divide by 0" if tmp.zero?
-        @stack[-1] //= tmp
+      tmp = @stack.pop
+      abort "tried to divide by 0" if tmp.zero?
+      @stack[-1] //= tmp
       when :mod; check 2, mod
-        a, b = @stack.pop 2
-        @stack << case {a, b}
-        when {Int64, Int64}
-          a % b
-        else
-          a.to_big_i % b
-        end
+      a, b = @stack.pop 2
+      @stack << case {a, b}
+      when {Int64, Int64}
+        a % b
+      else
+        a.to_big_i % b
+      end
 
       # flow
       when :jump; ip = jumps[arg]
-      when :jz  ; check 1, jz
-        ip = jumps[arg] if @stack.pop == 0
-      when :jn  ; check 1, jn
-        ip = jumps[arg] if @stack.pop < 0
+      when :jz; check 1, jz
+      ip = jumps[arg] if @stack.pop == 0
+      when :jn; check 1, jn
+      ip = jumps[arg] if @stack.pop < 0
       when :call
         calls << {iarg, ip}
         ip = jumps[arg]
@@ -150,12 +150,11 @@ class Spiceweight
             now.not_nil! - call_times[arg]
         end
       when :exit; break
-
-      # heap
+        # heap
       when :store; check 2, store
-        k, v = @stack.pop 2; @heap[k] = v
-      when :load ; check 1, load
-        @stack << @heap.fetch @stack.pop.to_i, 0i64
+      k, v = @stack.pop 2; @heap[k] = v
+      when :load; check 1, load
+      @stack << @heap.fetch @stack.pop.to_i, 0i64
       # IO
       when :ichr; @heap[@stack.pop] = Int64.new (b = STDIN.read_byte) ? b : -1
       when :inum; @heap[@stack.pop] = Int64.new STDIN.peek.empty? ? 0 : gets.not_nil!
@@ -171,13 +170,13 @@ bench = false
 
 op = OptionParser.parse do |parser|
   parser.banner = <<-EOS
-Spiceweight is a Whitespace interpreter with some cool features:
+  Spiceweight is a Whitespace interpreter with some cool features:
     * negative heap addressing so that stdlib subroutines never clobber user data
     * arbitrary precision integers (but only when necessary, so it's)
     * pretty fast!
 
-Usage: #{PROGRAM_NAME} [OPTIONS] FILE
-EOS
+  Usage: #{PROGRAM_NAME} [OPTIONS] FILE
+  EOS
 
   parser.on("-r", "--report",
     "Display stack, heap, and instruction count after executing") {
