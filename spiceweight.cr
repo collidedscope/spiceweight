@@ -228,5 +228,5 @@ else
   sw.interpret nil, [] of Nil
 end
 
-STDERR.puts sw.stack, sw.heap, sw.count if report
+STDERR.puts sw.stack, sw.heap.to_a.sort.to_h, sw.count if report
 exit sw.stack.size # punish dirty exit stack
