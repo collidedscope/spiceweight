@@ -4,6 +4,10 @@ require "option_parser"
 
 struct BigInt
   def_hash to_i64
+
+  def digits
+    super
+  end
 end
 
 class Spiceweight
@@ -14,6 +18,7 @@ class Spiceweight
     "\t  \t" => :sub, "\t  \n" => :mul, "\t \t " => :div, "\t \t\t" => :mod,
     "\t\t " => :store, "\t\t\t" => :load, "\n\t\n" => :ret, "\t\n\t " => :ichr,
     "\t\n\t\t" => :inum, "\t\n  " => :ochr, "\t\n \t" => :onum, "\n\n\n" => :exit,
+    "\t\n\n" => :shell,
   }
 
   alias Num = Int64 | BigInt
@@ -81,6 +86,14 @@ class Spiceweight
 
   macro check(n, op)
     abort "not enough elements for {{op}}" if @stack.size < {{n}}
+  end
+
+  def strpack(s)
+    s.bytes.zip(0..).sum { |b, e| 128.to_big_i ** e * b }
+  end
+
+  def strunpack(n)
+    n.digits(128).map(&.chr).join
   end
 
   def interpret(bench, bench_labels, io = STDOUT)
@@ -160,6 +173,8 @@ class Spiceweight
       when :inum; @heap[@stack.pop] = Int64.new STDIN.peek.empty? ? 0 : gets.not_nil!
       when :ochr; io << @stack.pop.to_i.chr
       when :onum; io << @stack.pop
+      when :shell
+        @stack << strpack `#{strunpack @stack.pop}`
       end
     end
   end
