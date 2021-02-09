@@ -49,7 +49,7 @@ class Spiceweight
       end
 
       if op = Ops[buffer]?
-        if Ops.key_index(buffer).not_nil! < 8
+        if Ops.keys.index(buffer).not_nil! < 8
           arg = parse_number
           line += 1
         end
